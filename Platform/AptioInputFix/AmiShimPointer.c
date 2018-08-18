@@ -483,55 +483,6 @@ AmiShimPointerInstall (
   VOID
   )
 {
-  EFI_STATUS                    Status;
-  UINTN                         NoHandles;
-  EFI_HANDLE                    *Handles;
-  UINTN                         Index;
-  BOOLEAN                       Installed;
-  AMI_EFIPOINTER_PROTOCOL       *EfiPointer;
-  EFI_SIMPLE_POINTER_PROTOCOL   *SimplePointer;
-
-  Status = gBS->LocateHandleBuffer (ByProtocol, &gAmiEfiPointerProtocolGuid, NULL, &NoHandles, &Handles);
-  if (EFI_ERROR(Status)) {
-    return EFI_NOT_FOUND;
-  }
-  
-  DEBUG ((EFI_D_ERROR, "Found %d Handles located by protocol\n", NoHandles));
-
-  Installed = FALSE;
-
-  for (Index = 0; Index < NoHandles; Index++) {
-    Status = gBS->HandleProtocol (Handles[Index], &gAmiEfiPointerProtocolGuid, (VOID **)&EfiPointer);
-    if (EFI_ERROR(Status)) {
-      DEBUG ((EFI_D_ERROR, "Handle %d has no AmiEfiPointerl %d\n", Index, Status));
-      continue;
-    }
-
-    Status = gBS->HandleProtocol (Handles[Index], &gEfiSimplePointerProtocolGuid, (VOID **)&SimplePointer);
-    if (EFI_ERROR(Status)) {
-      DEBUG ((EFI_D_ERROR, "Handle %d has no EfiSimplePointer %d\n", Index, Status));
-      continue;
-    }
-
-    Status = AmiShimPointerInstallOnHandle (Handles[Index], EfiPointer, SimplePointer);
-    if (EFI_ERROR(Status)) {
-      DEBUG ((EFI_D_ERROR, "Handle %d failed to get installed %d\n", Index, Status));
-      continue;
-    }
-
-    Installed = TRUE;
-  }
-
-  gBS->FreePool (Handles);
-
-  if (!Installed) {
-    return EFI_NOT_FOUND;
-  }
-
-  if (!mAmiShimPointer.TimersInitialised) {
-    return AmiShimPointerTimerSetup();
-  }
-
   return EFI_SUCCESS;
 }
 
@@ -541,19 +492,6 @@ AmiShimPointerUninstall (
   VOID
   )
 {
-  UINTN                      Index;
-  AMI_SHIM_POINTER_INSTANCE  *Pointer;
-
-  AmiShimPointerTimerUninstall();
-
-  for (Index = 0; Index < MAX_POINTERS; Index++) {
-    Pointer = &mAmiShimPointer.PointerMap[Index];
-    if (Pointer->DeviceHandle != NULL) {
-      Pointer->SimplePointer->GetState = Pointer->OriginalGetState;
-      gBS->DisconnectController(Pointer->DeviceHandle, NULL, NULL);
-      Pointer->DeviceHandle = NULL;
-    }
-  }
 
   return EFI_SUCCESS;
 }
@@ -574,24 +512,7 @@ AmiShimPointerInit (
   VOID
   )
 {
-  EFI_STATUS       Status;
-  VOID             *Registration;
-  
-  Status = gBS->CreateEvent (EVT_NOTIFY_SIGNAL, TPL_NOTIFY, AmiShimPointerArriveHandler, NULL, &mAmiShimPointer.ProtocolArriveEvent);
 
-  if (EFI_ERROR (Status)) {
-    DEBUG((EFI_D_ERROR, "AmiShimPointerArriveHandler event creation failed %d\n", Status));
-    return Status;
-  }
-
-  // EfiSimplePointer gets installed after AMI proprietary protocol
-  Status = gBS->RegisterProtocolNotify (&gEfiSimplePointerProtocolGuid, mAmiShimPointer.ProtocolArriveEvent, &Registration);
-
-  if (EFI_ERROR (Status)) {
-    DEBUG((EFI_D_ERROR, "AmiShimProtocolArriveHandler protocol registration failed %d\n", Status));
-    gBS->CloseEvent (mAmiShimPointer.ProtocolArriveEvent);
-    return Status;
-  }
 
   return AmiShimPointerInstall();
 }

@@ -14,9 +14,9 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #ifndef _AMI_SHIM_KEYCODE_H_
 #define _AMI_SHIM_KEYCODE_H_
 
-#define MAX_KEYCODES        12
-#define MAX_KEY_NUM         6
-#define MAX_KEY_BUFFER_SIZE 12
+#define MAX_KEYCODES        2
+#define MAX_KEY_NUM 8
+#define MAX_KEY_BUFFER_SIZE 32
 
 typedef struct {
   EFI_HANDLE                       DeviceHandle;
@@ -50,7 +50,6 @@ AmiShimProtocolArriveHandler (
   IN VOID       *Context
   );
 
-#define MAX_KEY_NUM 6
-#define READ_EFIKEY_TIMER_INTERVAL EFI_TIMER_PERIOD_MILLISECONDS(10)
+#define READ_EFIKEY_TIMER_INTERVAL EFI_TIMER_PERIOD_MILLISECONDS(40)
 
 #endif
